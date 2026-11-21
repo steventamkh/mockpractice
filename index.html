@@ -94,14 +94,15 @@
   <section id="setup">
     <div class="card">
       <div class="row">
-        <h2 data-t="topics"></h2>
-        <div class="grp" data-t="compulsory"></div>
-        <div class="chips" id="topicChips"></div>
-        <div class="grp" data-t="electives"></div>
-        <div class="chips" id="elecChips"></div>
-        <div style="margin-top:8px;display:flex;gap:8px"><button class="btn ghost small" onclick="allTopics(true)" data-t="selAll"></button><button class="btn ghost small" onclick="allTopics(false)" data-t="selNone"></button></div>
+        <h2 data-t="partH"></h2>
+        <div class="chips" id="partChips"></div>
       </div>
       <div class="row">
+        <h2 data-t="topics"></h2>
+        <div class="chips" id="topicChips"></div>
+        <div style="margin-top:8px;display:flex;gap:8px"><button class="btn ghost small" onclick="allTopics(true)" data-t="selAll"></button><button class="btn ghost small" onclick="allTopics(false)" data-t="selNone"></button></div>
+      </div>
+      <div class="row" id="extRow">
         <h2 data-t="ext"></h2>
         <div class="chips">
           <button class="chip" id="extChip" aria-pressed="true" onclick="toggle(this);refresh()"></button>
@@ -203,7 +204,7 @@ const T = {
      confirmFinish:n=>`${n} question(s) not answered. Finish anyway?`,confirmQuit:"Quit this set? Your answers will be lost.",
      result:"Result",scoreSub:(c,n,t)=>`${c} out of ${n} correct${t?` · time used ${t}`:""}`,topic:"Topic",correct:"Correct",
      newSet:"New set",redo:n=>`Redo ${n} wrong`,review:"Review",onlyWrong:"Show wrong / unanswered only",
-     yours:"Your answer",key:"Answer",none:"—",paperQ:q=>`${q.pub} ${q.s}${q.pub==="OUP"&&q.s===2023?` (Set ${q.st||1})`:q.pub==="Pearson"&&q.st?` (Elective Extra Set ${q.st})`:""} · ${q.p==="1A"?"Paper 1A":"Paper 2"} Q${q.n}`,coTitle:"Chinese-only questions",coOn:"Include OUP questions (Chinese only)",coHint:"The OUP mock papers are only available in Chinese. Turn this on to include them.",compulsory:"Compulsory part (Paper 1A)",electives:"Elective part (Paper 2)",solution:"Solution",more:"More explanation",showSol:"Show solution",
+     yours:"Your answer",key:"Answer",none:"—",paperQ:q=>`${q.pub} ${q.s}${q.pub==="OUP"&&q.s===2023?` (Set ${q.st||1})`:q.pub==="Pearson"&&q.st?` (Elective Extra Set ${q.st})`:""} · ${q.p==="1A"?"Paper 1A":"Paper 2"} Q${q.n}`,coTitle:"Chinese-only questions",coOn:"Include OUP questions (Chinese only)",coHint:"The OUP mock papers are only available in Chinese. Turn this on to include them.",partH:"Part",coreL:"Core",elecL:"Elective",compulsory:"Compulsory part (Paper 1A)",electives:"Elective part (Paper 2)",solution:"Solution",more:"More explanation",showSol:"Show solution",
      footer:"For internal teaching use only.",timeUp:"Time is up!",ok:"OK",cancel:"Cancel",zoom:"Tap the question to enlarge",
      topicsN:{heat:"Heat",mech:"Mechanics",wave:"Waves",em:"Electricity & Magnetism",nuc:"Radioactivity & Nuclear Energy",ast:"Astronomy & Space Science",atom:"Atomic World",energy:"Energy & Use of Energy",med:"Medical Physics"}},
   C:{title:"DSE 物理 模擬試卷 多項選擇題練習",subtitle:"自選課題及題目數量",selAll:"全選",selNone:"清除",numHint:n=>`最多可選 ${n} 題。`,
@@ -217,7 +218,7 @@ const T = {
      confirmFinish:n=>`尚有 ${n} 題未作答，確定完成？`,confirmQuit:"確定離開？你的答案將不會保留。",
      result:"成績",scoreSub:(c,n,t)=>`${n} 題中答對 ${c} 題${t?` · 用時 ${t}`:""}`,topic:"課題",correct:"答對",
      newSet:"重新選題",redo:n=>`重做 ${n} 道錯題`,review:"題目檢討",onlyWrong:"只顯示答錯／未答",
-     yours:"你的答案",key:"答案",none:"—",paperQ:q=>`${q.pub==="OUP"?"牛津":"培生"} ${q.s}${q.pub==="OUP"&&q.s===2023?(q.st===2?"（第二套）":"（第一套）"):q.pub==="Pearson"&&q.st?`（選修部分增補第${"一二三"[q.st-1]}套）`:""} 模擬卷 ${q.p==="1A"?"卷一甲":"卷二"} 第 ${q.n} 題`,coTitle:"",coOn:"",coHint:"",compulsory:"必修部分（卷一甲）",electives:"選修部分（卷二）",solution:"題解",more:"補充說明",showSol:"顯示題解",
+     yours:"你的答案",key:"答案",none:"—",paperQ:q=>`${q.pub==="OUP"?"牛津":"培生"} ${q.s}${q.pub==="OUP"&&q.s===2023?(q.st===2?"（第二套）":"（第一套）"):q.pub==="Pearson"&&q.st?`（選修部分增補第${"一二三"[q.st-1]}套）`:""} 模擬卷 ${q.p==="1A"?"卷一甲":"卷二"} 第 ${q.n} 題`,coTitle:"",coOn:"",coHint:"",partH:"部分",coreL:"必修部分",elecL:"選修部分",compulsory:"必修部分（卷一甲）",electives:"選修部分（卷二）",solution:"題解",more:"補充說明",showSol:"顯示題解",
      footer:"只供校內教學用途。",timeUp:"時間到！",ok:"確定",cancel:"取消",zoom:"點擊題目可放大",
      topicsN:{heat:"熱學",mech:"力學",wave:"波動學",em:"電與磁",nuc:"放射性及核能",ast:"天文學和航天科學",atom:"原子世界",energy:"能量和能源的使用",med:"醫學物理學"}}
 };
@@ -240,25 +241,27 @@ const on=id=>[...$(id).children].filter(c=>c.getAttribute("aria-pressed")==="tru
 function buildSetup(){
   const t=T[lang];
   const keep=(id,def)=>{const prev=$(id).children.length?on(id):null;return v=>prev?prev.includes(String(v)):def(v)};
-  const kt=keep("topicChips",()=>true), ke=keep("elecChips",()=>true), kn=keep("numChips",v=>v==="10"), ko=keep("orderChips",v=>v==="random"), km=keep("modeChips",v=>v==="practice");
-  $("topicChips").replaceChildren(...CORE.map(k=>chip(t.topicsN[k],k,kt(k))));
-  $("elecChips").replaceChildren(...ELEC.map(k=>chip(t.topicsN[k],k,ke(k))));
+  const pc=$("partChips"); pc.replaceChildren(...[["core",t.coreL],["elec",t.elecL]].map(([v,l])=>{const b=chip(l,v,v===part);b.onclick=()=>{if(part!==v){part=v;$("topicChips").replaceChildren();buildSetup()}};return b}));
+  $("extRow").classList.toggle("hidden",part==="elec");
+  const kt=keep("topicChips",()=>true), kn=keep("numChips",v=>v==="10"), ko=keep("orderChips",v=>v==="random"), km=keep("modeChips",v=>v==="practice");
+  $("topicChips").replaceChildren(...(part==="elec"?ELEC:CORE).map(k=>chip(t.topicsN[k],k,kt(k))));
   const nc=$("numChips"); nc.replaceChildren(...["5","10","15","20","30","all"].map(v=>{const b=chip(v==="all"?t.all:v,v,kn(v));b.onclick=()=>radio(nc,b);return b}));
   const oc=$("orderChips"); oc.replaceChildren(...[["random",t.random],["paper",t.paper]].map(([v,l])=>{const b=chip(l,v,ko(v));b.onclick=()=>radio(oc,b);return b}));
   const mc=$("modeChips"); mc.replaceChildren(...[["practice",t.practice],["exam",t.exam]].map(([v,l])=>{const b=chip(l,v,km(v));b.onclick=()=>radio(mc,b);return b}));
   refresh();
 }
+let part="core";
 const coOK=q=>true;
 function pool(){
-  const ts=[...on("topicChips"),...on("elecChips")], ext=$("extChip").getAttribute("aria-pressed")==="true";
-  return Q.filter(q=>ts.includes(q.t)&&(ext||!q.x)&&coOK(q));
+  const ts=on("topicChips"), ext=$("extChip").getAttribute("aria-pressed")==="true";
+  return Q.filter(q=>ts.includes(q.t)&&(part==="elec"||ext||!q.x)&&coOK(q));
 }
-function allTopics(v){[...$("topicChips").children,...$("elecChips").children].forEach(c=>c.setAttribute("aria-pressed",v));refresh()}
+function allTopics(v){[...$("topicChips").children].forEach(c=>c.setAttribute("aria-pressed",v));refresh()}
 function refresh(){
   const t=T[lang], n=pool().length;
   $("poolInfo").textContent=t.pool(n); $("startBtn").disabled=!n; $("numHint").textContent=t.numHint(n);
   const ext=$("extChip").getAttribute("aria-pressed")==="true";
-  [...$("topicChips").children,...$("elecChips").children].forEach(c=>{const k=c.dataset.v;c.textContent=`${t.topicsN[k]} (${Q.filter(q=>q.t===k&&(ext||!q.x)&&coOK(q)).length})`});
+  [...$("topicChips").children].forEach(c=>{const k=c.dataset.v;c.textContent=`${t.topicsN[k]} (${Q.filter(q=>q.t===k&&(ext||!q.x)&&coOK(q)).length})`});
   $("modeHint").textContent=on("modeChips")[0]==="exam"?t.examHint:t.practiceHint;
   const w=store.get("dsemock2_wrong",[]); $("wrongInfo").textContent=t.wrongInfo(w.length); $("wrongBtn").disabled=!w.length;
 }
