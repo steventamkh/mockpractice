@@ -134,6 +134,7 @@
     <div class="card" id="wrongCard">
       <h2 data-t="myWrong"></h2>
       <p id="wrongInfo" style="margin:0 0 10px"></p>
+      <div id="wrongTopics" class="hidden" style="margin-bottom:12px"><div class="hint" style="margin:0 0 6px" data-t="wrongPick"></div><div class="chips" id="wrongChips"></div></div>
       <button class="btn ghost small" id="wrongBtn" onclick="startWrong()"></button>
       <button class="btn ghost small" onclick="clearWrong()" data-t="clear"></button>
     </div>
@@ -201,7 +202,7 @@ const T = {
      howMany:"Number of questions",all:"All",order:"Order",random:"Random",paper:"Paper order",mode:"Mode",
      practice:"Practice",exam:"Exam",practiceHint:"See the answer straight after each question.",examHint:"Timed (1.8 min per question, like the real exam). Answers shown at the end.",
      start:"Start",pool:n=>`${n} question(s) match your choices`,myWrong:"My wrong questions",
-     wrongInfo:n=>n?`You have ${n} question(s) you answered wrongly before (saved on this device).`:"No wrong questions saved yet.",
+     wrongPick:"Choose the topics to practise:",wrongInfo:n=>n?`You have ${n} question(s) you answered wrongly before (saved on this device).`:"No wrong questions saved yet.",
      redoSaved:"Practise these",clear:"Clear",prev:"← Prev",next:"Next →",finish:"Finish",flag:"⚑ Flag",unflag:"⚑ Unflag",quit:"Quit",
      q:(i,n)=>`Question ${i} of ${n}`,correctFb:"✓ Correct!",wrongFb:k=>`✗ The answer is ${k}.`,pct:p=>` (${p}% of DSE candidates got this right)`,
      confirmFinish:n=>`${n} question(s) not answered. Finish anyway?`,confirmQuit:"Quit this set? Your answers will be lost.",
@@ -215,7 +216,7 @@ const T = {
      howMany:"題目數量",all:"全部",order:"次序",random:"隨機",paper:"按試卷次序",mode:"模式",
      practice:"練習",exam:"考試",practiceHint:"每題作答後即時顯示答案。",examHint:"計時（每題 1.8 分鐘，與正式考試相同），完成後才顯示答案。",
      start:"開始",pool:n=>`共有 ${n} 題符合你的選擇`,myWrong:"我的錯題",
-     wrongInfo:n=>n?`你之前答錯了 ${n} 題（儲存在此裝置）。`:"暫時未有錯題紀錄。",
+     wrongPick:"選擇要重做的課題：",wrongInfo:n=>n?`你之前答錯了 ${n} 題（儲存在此裝置）。`:"暫時未有錯題紀錄。",
      redoSaved:"練習錯題",clear:"清除",prev:"← 上一題",next:"下一題 →",finish:"完成",flag:"⚑ 標記",unflag:"⚑ 取消標記",quit:"離開",
      q:(i,n)=>`第 ${i} 題（共 ${n} 題）`,correctFb:"✓ 答對了！",wrongFb:k=>`✗ 答案是 ${k}。`,pct:p=>`（${p}% 考生答對）`,
      confirmFinish:n=>`尚有 ${n} 題未作答，確定完成？`,confirmQuit:"確定離開？你的答案將不會保留。",
@@ -254,6 +255,7 @@ function buildSetup(){
   refresh();
 }
 let part="core";
+const wrongOff=new Set();
 const coOK=q=>true;
 function pool(){
   const ts=on("topicChips"), ext=$("extChip").getAttribute("aria-pressed")==="true";
@@ -266,7 +268,11 @@ function refresh(){
   const ext=$("extChip").getAttribute("aria-pressed")==="true";
   [...$("topicChips").children].forEach(c=>{const k=c.dataset.v;c.textContent=`${t.topicsN[k]} (${Q.filter(q=>q.t===k&&(ext||!q.x)&&coOK(q)).length})`});
   $("modeHint").textContent=on("modeChips")[0]==="exam"?t.examHint:t.practiceHint;
-  const w=store.get("dsemock2_wrong",[]); $("wrongInfo").textContent=t.wrongInfo(w.length); $("wrongBtn").disabled=!w.length;
+  const wq=wrongQs(); $("wrongInfo").textContent=t.wrongInfo(wq.length);
+  const wt=TOPICS.filter(k=>wq.some(q=>q.t===k));
+  $("wrongTopics").classList.toggle("hidden",!wt.length);
+  $("wrongChips").replaceChildren(...wt.map(k=>{const b=chip(`${t.topicsN[k]} (${wq.filter(q=>q.t===k).length})`,k,!wrongOff.has(k));b.onclick=()=>{wrongOff.has(k)?wrongOff.delete(k):wrongOff.add(k);refresh()};return b}));
+  const wn=wrongSel().length; $("wrongBtn").disabled=!wn; $("wrongBtn").textContent=t.redoSaved+(wq.length?` (${wn})`:"");
 }
 function applyLang(){
   const t=T[lang]; document.documentElement.lang=lang==="C"?"zh-Hant":"en";
@@ -290,7 +296,9 @@ function start(list){
   if(S.limit){$("timerBox").classList.remove("hidden");tick();timerId=setInterval(tick,1000)}else $("timerBox").classList.add("hidden");
   renderQ(); scrollTo(0,0);
 }
-function startWrong(){const w=new Set(store.get("dsemock2_wrong",[]));start(Q.filter(q=>w.has(qid(q))))}
+function wrongQs(){const w=new Set(store.get("dsemock2_wrong",[]));return Q.filter(q=>w.has(qid(q)))}
+function wrongSel(){return wrongQs().filter(q=>!wrongOff.has(q.t))}
+function startWrong(){start(wrongSel())}
 function clearWrong(){store.set("dsemock2_wrong",[]);refresh()}
 const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 function tick(){const left=S.limit-Math.floor((Date.now()-S.t0)/1000);$("timer").textContent=fmt(Math.max(0,left));$("timer").classList.toggle("low",left<120);if(left<=0){clearInterval(timerId);finish(true);ask(T[lang].timeUp,true)}}
