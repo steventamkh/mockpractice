@@ -70,6 +70,9 @@
   .ok{color:var(--good);font-weight:700}.no{color:var(--bad);font-weight:700}
   .rev{border-top:1px solid var(--line);padding-top:14px;margin-top:14px}
   footer{color:var(--muted);font-size:.8rem;margin-top:30px;text-align:center}
+  .acct{display:flex;align-items:center;gap:8px;font-size:.85rem;color:var(--muted);flex-wrap:wrap;justify-content:flex-end}
+  .acct b{color:var(--ink);font-weight:600}
+  .acct .st.ok{color:var(--good)}.acct .st.err{color:var(--bad)}
   .hidden{display:none!important}
   .modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;padding:16px;z-index:9}
   .modal>div{background:var(--panel);border-radius:16px;padding:20px;max-width:380px;width:100%;box-shadow:var(--shadow)}
@@ -84,7 +87,8 @@
       <h1 data-t="title"></h1>
       <p class="sub" data-t="subtitle"></p>
     </div>
-    <div style="display:flex;gap:8px;align-items:center">
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap;justify-content:flex-end">
+    <div class="acct" id="acct"></div>
     <button class="btn ghost small hidden" id="homeBtn" onclick="goHome()" style="background:var(--panel)"></button>
     <div class="langsw" role="group" aria-label="Language">
       <button id="lgE" onclick="setLang('E')">English</button>
@@ -177,6 +181,7 @@
         <thead><tr><th data-t="topic"></th><th data-t="correct"></th><th></th></tr></thead>
         <tbody id="topicTable"></tbody>
       </table>
+      <p class="hint" id="saveInfo"></p>
       <div style="display:flex;gap:8px;flex-wrap:wrap;margin-top:18px">
         <button class="btn" onclick="showSetup()" data-t="newSet"></button>
         <button class="btn ghost" id="redoBtn" onclick="redoWrong()"></button>
@@ -202,13 +207,13 @@ const T = {
      howMany:"Number of questions",all:"All",order:"Order",random:"Random",paper:"Paper order",mode:"Mode",
      practice:"Practice",exam:"Exam",practiceHint:"See the answer straight after each question.",examHint:"Timed (1.8 min per question, like the real exam). Answers shown at the end.",
      start:"Start",pool:n=>`${n} question(s) match your choices`,myWrong:"My wrong questions",
-     wrongPick:"Choose the topics to practise:",wrongInfo:n=>n?`You have ${n} question(s) you answered wrongly before (saved on this device).`:"No wrong questions saved yet.",
+     wrongPick:"Choose the topics to practise:",wrongInfo:n=>n?`You have ${n} question(s) you answered wrongly before (saved ${user?"to your school account":"on this device"}).`:"No wrong questions saved yet.",
      redoSaved:"Practise these",clear:"Clear",prev:"← Prev",next:"Next →",finish:"Finish",flag:"⚑ Flag",unflag:"⚑ Unflag",quit:"Quit",
      q:(i,n)=>`Question ${i} of ${n}`,correctFb:"✓ Correct!",wrongFb:k=>`✗ The answer is ${k}.`,pct:p=>` (${p}% of DSE candidates got this right)`,
      confirmFinish:n=>`${n} question(s) not answered. Finish anyway?`,confirmQuit:"Quit this set? Your answers will be lost.",
      result:"Result",scoreSub:(c,n,t)=>`${c} out of ${n} correct${t?` · time used ${t}`:""}`,topic:"Topic",correct:"Correct",
      newSet:"New set",redo:n=>`Redo ${n} wrong`,review:"Review",onlyWrong:"Show wrong / unanswered only",
-     yours:"Your answer",key:"Answer",none:"—",paperQ:q=>`${q.pub} ${q.s}${q.pub==="OUP"&&q.s===2023?` (Set ${q.st||1})`:q.pub==="Pearson"&&q.st?` (Elective Extra Set ${q.st})`:""} · ${q.p==="1A"?"Paper 1A":"Paper 2"} Q${q.n}`,coTitle:"Chinese-only questions",coOn:"Include OUP questions (Chinese only)",coHint:"The OUP mock papers are only available in Chinese. Turn this on to include them.",partH:"Part",coreL:"Core",elecL:"Elective",home:"🏠 Home",compulsory:"Compulsory part (Paper 1A)",electives:"Elective part (Paper 2)",solution:"Solution",more:"More explanation",showSol:"Show solution",
+     yours:"Your answer",key:"Answer",none:"—",paperQ:q=>`${q.pub} ${q.s}${q.pub==="OUP"&&q.s===2023?` (Set ${q.st||1})`:q.pub==="Pearson"&&q.st?` (Elective Extra Set ${q.st})`:""} · ${q.p==="1A"?"Paper 1A":"Paper 2"} Q${q.n}`,coTitle:"Chinese-only questions",coOn:"Include OUP questions (Chinese only)",coHint:"The OUP mock papers are only available in Chinese. Turn this on to include them.",partH:"Part",coreL:"Core",elecL:"Elective",home:"🏠 Home",signOut:"Sign out",saving:"Saving…",saved:"✓ Saved",needSign:"Sign in again to save",badDom:"Please sign in with your school account (@fss.edu.hk).",saveIn:"Your result is saved to your school account.",saveOut:"Sign in with your school Google account (top right) to keep your progress on any device.",saveWait:"Saving your result…",saveFail:"Not saved yet. It will be saved the next time you sign in.",compulsory:"Compulsory part (Paper 1A)",electives:"Elective part (Paper 2)",solution:"Solution",more:"More explanation",showSol:"Show solution",
      footer:"For internal teaching use only.",timeUp:"Time is up!",ok:"OK",cancel:"Cancel",zoom:"Tap the question to enlarge",
      topicsN:{heat:"Heat",mech:"Mechanics",wave:"Waves",em:"Electricity & Magnetism",nuc:"Radioactivity & Nuclear Energy",ast:"Astronomy & Space Science",atom:"Atomic World",energy:"Energy & Use of Energy",med:"Medical Physics"}},
   C:{title:"DSE 物理 模擬試卷 多項選擇題練習",subtitle:"自選課題及題目數量",selAll:"全選",selNone:"清除",numHint:n=>`最多可選 ${n} 題。`,
@@ -216,13 +221,13 @@ const T = {
      howMany:"題目數量",all:"全部",order:"次序",random:"隨機",paper:"按試卷次序",mode:"模式",
      practice:"練習",exam:"考試",practiceHint:"每題作答後即時顯示答案。",examHint:"計時（每題 1.8 分鐘，與正式考試相同），完成後才顯示答案。",
      start:"開始",pool:n=>`共有 ${n} 題符合你的選擇`,myWrong:"我的錯題",
-     wrongPick:"選擇要重做的課題：",wrongInfo:n=>n?`你之前答錯了 ${n} 題（儲存在此裝置）。`:"暫時未有錯題紀錄。",
+     wrongPick:"選擇要重做的課題：",wrongInfo:n=>n?`你之前答錯了 ${n} 題（儲存${user?"於你的學校帳戶":"在此裝置"}）。`:"暫時未有錯題紀錄。",
      redoSaved:"練習錯題",clear:"清除",prev:"← 上一題",next:"下一題 →",finish:"完成",flag:"⚑ 標記",unflag:"⚑ 取消標記",quit:"離開",
      q:(i,n)=>`第 ${i} 題（共 ${n} 題）`,correctFb:"✓ 答對了！",wrongFb:k=>`✗ 答案是 ${k}。`,pct:p=>`（${p}% 考生答對）`,
      confirmFinish:n=>`尚有 ${n} 題未作答，確定完成？`,confirmQuit:"確定離開？你的答案將不會保留。",
      result:"成績",scoreSub:(c,n,t)=>`${n} 題中答對 ${c} 題${t?` · 用時 ${t}`:""}`,topic:"課題",correct:"答對",
      newSet:"重新選題",redo:n=>`重做 ${n} 道錯題`,review:"題目檢討",onlyWrong:"只顯示答錯／未答",
-     yours:"你的答案",key:"答案",none:"—",paperQ:q=>`${q.pub==="OUP"?"牛津":"培生"} ${q.s}${q.pub==="OUP"&&q.s===2023?(q.st===2?"（第二套）":"（第一套）"):q.pub==="Pearson"&&q.st?`（選修部分增補第${"一二三"[q.st-1]}套）`:""} 模擬卷 ${q.p==="1A"?"卷一甲":"卷二"} 第 ${q.n} 題`,coTitle:"",coOn:"",coHint:"",partH:"部分",coreL:"必修部分",elecL:"選修部分",home:"🏠 主頁",compulsory:"必修部分（卷一甲）",electives:"選修部分（卷二）",solution:"題解",more:"補充說明",showSol:"顯示題解",
+     yours:"你的答案",key:"答案",none:"—",paperQ:q=>`${q.pub==="OUP"?"牛津":"培生"} ${q.s}${q.pub==="OUP"&&q.s===2023?(q.st===2?"（第二套）":"（第一套）"):q.pub==="Pearson"&&q.st?`（選修部分增補第${"一二三"[q.st-1]}套）`:""} 模擬卷 ${q.p==="1A"?"卷一甲":"卷二"} 第 ${q.n} 題`,coTitle:"",coOn:"",coHint:"",partH:"部分",coreL:"必修部分",elecL:"選修部分",home:"🏠 主頁",signOut:"登出",saving:"儲存中…",saved:"✓ 已儲存",needSign:"請重新登入以儲存",badDom:"請使用學校帳戶（@fss.edu.hk）登入。",saveIn:"成績已儲存到你的學校帳戶。",saveOut:"用學校 Google 帳戶登入（右上角），進度便可在任何裝置保存。",saveWait:"正在儲存成績…",saveFail:"尚未儲存，下次登入時會自動儲存。",compulsory:"必修部分（卷一甲）",electives:"選修部分（卷二）",solution:"題解",more:"補充說明",showSol:"顯示題解",
      footer:"只供校內教學用途。",timeUp:"時間到！",ok:"確定",cancel:"取消",zoom:"點擊題目可放大",
      topicsN:{heat:"熱學",mech:"力學",wave:"波動學",em:"電與磁",nuc:"放射性及核能",ast:"天文學和航天科學",atom:"原子世界",energy:"能量和能源的使用",med:"醫學物理學"}}
 };
@@ -255,6 +260,51 @@ function buildSetup(){
   refresh();
 }
 let part="core";
+const ACC={url:"https://script.google.com/macros/s/AKfycbxbNPfEr-FwRpsbktXoo18WHVFLkm2A7SYiOtHglUHtAvhFUIcpWGhKj0ZICrzgmKt1Sg/exec",
+  cid:"91817011001-fj9tks7hkvk934to417krblgg3lv9k2q.apps.googleusercontent.com",dom:"fss.edu.hk"};
+let user=null,tok=null,tokExp=0,accSt="",accMsg="";
+const WK=()=>user?"dsemock2_wrong_"+user.email:"dsemock2_wrong";
+const PK=()=>"dsemock2_pending_"+(user?user.email:"");
+async function api(body){const r=await fetch(ACC.url,{method:"POST",body:JSON.stringify(body)});return r.json()}
+function jwt(t){try{const b=t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent([...atob(b)].map(c=>"%"+c.charCodeAt(0).toString(16).padStart(2,"0")).join("")))}catch(e){return{}}}
+const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
+function setAcc(st,msg){
+  accSt=st||"";accMsg=msg||"";const t=T[lang],a=$("acct");if(!a)return;
+  if(!user){
+    a.innerHTML=(accSt==="bad"?`<span class="st err">${esc(t.badDom)}</span>`:"")+'<div id="gsiBtn"></div>';
+    if(window.google&&google.accounts&&google.accounts.id)google.accounts.id.renderButton($("gsiBtn"),{type:"standard",size:"medium",shape:"pill",text:"signin",locale:lang==="C"?"zh-HK":"en"});
+  }else{
+    const st={sync:["",t.saving],ok:["ok",t.saved],expired:["err",t.needSign],err:["err","⚠ "+accMsg]}[accSt]||["",""];
+    a.innerHTML=`<span>👤 <b>${esc(user.name)}</b></span>${st[1]?`<span class="st ${st[0]}">${esc(st[1])}</span>`:""}<button class="btn ghost small" onclick="signOut()">${esc(t.signOut)}</button>`;
+  }
+  const si=$("saveInfo");if(si)si.textContent=!user?t.saveOut:accSt==="ok"?t.saveIn:accSt==="sync"?t.saveWait:accSt?t.saveFail:"";
+}
+function pend(){return store.get(PK(),{a:[],w:false})}
+async function flush(){
+  const p=pend();if(!p.a.length&&!p.w)return true;
+  if(!tok||Date.now()>tokExp-60000)return false;
+  do{const d=await api({action:"save",token:tok,attempt:p.a[0]||null,wrong:store.get(WK(),[])});if(!d.ok)throw new Error(d.error||"error");
+    p.a.shift();p.w=false;store.set(PK(),p)}while(p.a.length);
+  return true;
+}
+async function sync(attempt){
+  if(!user)return;const p=pend();if(attempt)p.a.push(attempt);p.w=true;store.set(PK(),p);setAcc("sync");
+  try{if(await flush())setAcc("ok");else{setAcc("expired");try{google.accounts.id.prompt()}catch(e){}}}catch(e){setAcc("err",e.message)}
+}
+async function onCred(r){
+  const p=jwt(r.credential);
+  if(String(p.hd||"").toLowerCase()!==ACC.dom){user=null;tok=null;setAcc("bad");refresh();return}
+  tok=r.credential;tokExp=(p.exp||0)*1000;user={email:String(p.email).toLowerCase(),name:p.name||p.email};store.set("dsemock2_acct",1);setAcc("sync");refresh();
+  try{await flush();const d=await api({action:"load",token:tok});if(!d.ok)throw new Error(d.error||"error");
+    if(Array.isArray(d.wrong))store.set(WK(),d.wrong);setAcc("ok")}catch(e){setAcc("err",e.message)}
+  refresh();
+}
+function signOut(){user=null;tok=null;store.set("dsemock2_acct",0);try{google.accounts.id.disableAutoSelect()}catch(e){}setAcc();refresh()}
+function gsiInit(){
+  if(gsiInit.done||!window.google||!google.accounts||!google.accounts.id)return;gsiInit.done=1;
+  google.accounts.id.initialize({client_id:ACC.cid,callback:onCred,auto_select:true,hd:ACC.dom});
+  setAcc(accSt);if(store.get("dsemock2_acct",0))google.accounts.id.prompt();
+}
 const wrongOff=new Set();
 const coOK=q=>true;
 function pool(){
@@ -281,7 +331,7 @@ function applyLang(){
   $("extChip").textContent=t.extOn; $("startBtn").textContent=t.start; $("wrongBtn").textContent=t.redoSaved;
   $("prevBtn").textContent=t.prev; $("homeBtn").textContent=t.home; $("onlyWrongChip").textContent=t.onlyWrong;
 }
-function setLang(l){lang=l;store.set("dsemock2_lang",l);applyLang();buildSetup();if(S){if(!$("quiz").classList.contains("hidden"))renderQ();if(!$("results").classList.contains("hidden"))renderResults()}}
+function setLang(l){lang=l;store.set("dsemock2_lang",l);applyLang();setAcc(accSt);buildSetup();if(S){if(!$("quiz").classList.contains("hidden"))renderQ();if(!$("results").classList.contains("hidden"))renderResults()}}
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
 function start(list){
@@ -290,16 +340,16 @@ function start(list){
   if(order==="random")shuffle(qs=[...qs]); else qs=[...qs].sort((a,b)=>(a.pub>b.pub)-(a.pub<b.pub)||a.s-b.s||(a.st||1)-(b.st||1)||(a.p>b.p)-(a.p<b.p)||parseFloat(a.n)-parseFloat(b.n));
   if(num!=="all")qs=qs.slice(0,+num);
   const mode=list?"practice":on("modeChips")[0];
-  S={qs,ans:Array(qs.length).fill(null),flag:Array(qs.length).fill(false),i:0,mode,t0:Date.now(),limit:mode==="exam"?Math.round(qs.length*1.8*60):0};
+  S={qs,src:list?"redo":"setup",part,ans:Array(qs.length).fill(null),flag:Array(qs.length).fill(false),i:0,mode,t0:Date.now(),limit:mode==="exam"?Math.round(qs.length*1.8*60):0};
   $("setup").classList.add("hidden");$("results").classList.add("hidden");$("quiz").classList.remove("hidden");syncHome();
   clearInterval(timerId);
   if(S.limit){$("timerBox").classList.remove("hidden");tick();timerId=setInterval(tick,1000)}else $("timerBox").classList.add("hidden");
   renderQ(); scrollTo(0,0);
 }
-function wrongQs(){const w=new Set(store.get("dsemock2_wrong",[]));return Q.filter(q=>w.has(qid(q)))}
+function wrongQs(){const w=new Set(store.get(WK(),[]));return Q.filter(q=>w.has(qid(q)))}
 function wrongSel(){return wrongQs().filter(q=>!wrongOff.has(q.t))}
 function startWrong(){start(wrongSel())}
-function clearWrong(){store.set("dsemock2_wrong",[]);refresh()}
+function clearWrong(){store.set(WK(),[]);sync(null);refresh()}
 const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 function tick(){const left=S.limit-Math.floor((Date.now()-S.t0)/1000);$("timer").textContent=fmt(Math.max(0,left));$("timer").classList.toggle("low",left<120);if(left<=0){clearInterval(timerId);finish(true);ask(T[lang].timeUp,true)}}
 
@@ -329,9 +379,12 @@ async function go(d){if(S.i+d>=S.qs.length){const left=S.ans.filter(x=>!x).lengt
 async function quit(){if(await ask(T[lang].confirmQuit)){clearInterval(timerId);S=null;showSetup()}}
 function finish(){
   clearInterval(timerId); S.used=Math.floor((Date.now()-S.t0)/1000);
-  const w=new Set(store.get("dsemock2_wrong",[]));
+  const w=new Set(store.get(WK(),[]));
   S.qs.forEach((q,k)=>{if(S.ans[k]===ak(q))w.delete(qid(q));else w.add(qid(q))});
-  store.set("dsemock2_wrong",[...w]);
+  store.set(WK(),[...w]);
+  const cor=S.qs.filter((q,k)=>S.ans[k]===ak(q)).length;
+  sync({part:S.src==="redo"?"Wrong-question redo":S.part==="elec"?"Elective":"Core",topics:TOPICS.filter(k=>S.qs.some(q=>q.t===k)).map(k=>T.E.topicsN[k]),
+    mode:S.mode,total:S.qs.length,correct:cor,seconds:S.used,wrongIds:S.qs.filter((q,k)=>S.ans[k]!==ak(q)).map(qid)});
   $("quiz").classList.add("hidden");$("results").classList.remove("hidden");renderResults();scrollTo(0,0);
 }
 function renderResults(){
@@ -362,5 +415,7 @@ document.addEventListener("keydown",e=>{if(!S||$("quiz").classList.contains("hid
 lang=store.get("dsemock2_lang","E");
 applyLang();buildSetup();
 </script>
+<script>setAcc();gsiInit();</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="gsiInit()"></script>
 </body>
 </html>
