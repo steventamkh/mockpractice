@@ -241,11 +241,11 @@ const on=id=>[...$(id).children].filter(c=>c.getAttribute("aria-pressed")==="tru
 function buildSetup(){
   const t=T[lang];
   const keep=(id,def)=>{const prev=$(id).children.length?on(id):null;return v=>prev?prev.includes(String(v)):def(v)};
-  const pc=$("partChips"); pc.replaceChildren(...[["core",t.coreL],["elec",t.elecL]].map(([v,l])=>{const b=chip(l,v,v===part);b.onclick=()=>{if(part!==v){part=v;$("topicChips").replaceChildren();buildSetup()}};return b}));
+  const pc=$("partChips"); pc.replaceChildren(...[["core",t.coreL],["elec",t.elecL]].map(([v,l])=>{const b=chip(l,v,v===part);b.onclick=()=>{if(part!==v){part=v;$("topicChips").replaceChildren();$("numChips").replaceChildren();buildSetup()}};return b}));
   $("extRow").classList.toggle("hidden",part==="elec");
-  const kt=keep("topicChips",()=>true), kn=keep("numChips",v=>v==="10"), ko=keep("orderChips",v=>v==="random"), km=keep("modeChips",v=>v==="practice");
+  const kt=keep("topicChips",()=>true), kn=keep("numChips",v=>v===(part==="elec"?"8":"10")), ko=keep("orderChips",v=>v==="random"), km=keep("modeChips",v=>v==="practice");
   $("topicChips").replaceChildren(...(part==="elec"?ELEC:CORE).map(k=>chip(t.topicsN[k],k,kt(k))));
-  const nc=$("numChips"); nc.replaceChildren(...["5","10","15","20","30","all"].map(v=>{const b=chip(v==="all"?t.all:v,v,kn(v));b.onclick=()=>radio(nc,b);return b}));
+  const nc=$("numChips"); nc.replaceChildren(...(part==="elec"?["8","16"]:["5","10","15","20","30","all"]).map(v=>{const b=chip(v==="all"?t.all:v,v,kn(v));b.onclick=()=>radio(nc,b);return b}));
   const oc=$("orderChips"); oc.replaceChildren(...[["random",t.random],["paper",t.paper]].map(([v,l])=>{const b=chip(l,v,ko(v));b.onclick=()=>radio(oc,b);return b}));
   const mc=$("modeChips"); mc.replaceChildren(...[["practice",t.practice],["exam",t.exam]].map(([v,l])=>{const b=chip(l,v,km(v));b.onclick=()=>radio(mc,b);return b}));
   refresh();
