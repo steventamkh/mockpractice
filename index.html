@@ -425,7 +425,7 @@ function finish(){
   store.set(WK(),[...w]);
   const cor=S.qs.filter((q,k)=>S.ans[k]===ak(q)).length;
   sync({part:S.src==="redo"?"Wrong-question redo":S.src==="flag"?"Flagged review":S.part==="elec"?"Elective":"Core",topics:TOPICS.filter(k=>S.qs.some(q=>q.t===k)).map(k=>T.E.topicsN[k]),
-    mode:S.mode,total:S.qs.length,correct:cor,seconds:S.used,wrongIds:S.qs.filter((q,k)=>S.ans[k]!==ak(q)).map(qid)});
+    mode:S.mode,total:S.qs.length,correct:cor,seconds:S.used,wrongIds:S.qs.filter((q,k)=>S.ans[k]!==ak(q)).map(qid),qIds:S.qs.map(qid)});
   $("quiz").classList.add("hidden");$("results").classList.remove("hidden");renderResults();scrollTo(0,0);
 }
 function renderResults(){

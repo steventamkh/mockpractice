@@ -1,0 +1,320 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<meta name="robots" content="noindex">
+<title>Teacher dashboard – DSE Physics Mock MC Practice</title>
+<style>
+  :root{--bg:#f6f7f9;--panel:#fff;--ink:#1c2430;--muted:#5f6b7a;--line:#e3e7ec;--accent:#1f6feb;--accent-soft:#e8f0fe;
+    --bar:#257de0;--warn:#9a6700;--bad:#cf222e;--good:#1a7f37;--chip:#eef1f4;
+    --shadow:0 1px 2px rgba(16,24,40,.05),0 6px 18px rgba(16,24,40,.06)}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:system-ui,-apple-system,"Segoe UI","Microsoft JhengHei","PingFang TC",sans-serif;line-height:1.45}
+  .wrap{max-width:1180px;margin:0 auto;padding:22px 14px 60px}
+  header{display:flex;justify-content:space-between;align-items:center;gap:12px;flex-wrap:wrap;margin-bottom:14px}
+  h1{font-size:1.5rem;margin:0}
+  .sub{color:var(--muted);margin:2px 0 0;font-size:.9rem}
+  .card{background:var(--panel);border:1px solid var(--line);border-radius:14px;box-shadow:var(--shadow);padding:16px 18px;margin-bottom:14px}
+  h2{font-size:.8rem;text-transform:uppercase;letter-spacing:.06em;color:var(--muted);margin:0 0 10px}
+  .btn{border:1px solid var(--accent);background:var(--accent);color:#fff;border-radius:9px;padding:7px 14px;font:inherit;font-size:.88rem;cursor:pointer}
+  .btn.ghost{background:var(--panel);color:var(--accent)}
+  .btn.small{padding:4px 10px;font-size:.8rem}
+  .btn:disabled{opacity:.5;cursor:default}
+  .filters{display:flex;gap:16px;flex-wrap:wrap;align-items:center}
+  .seg{display:inline-flex;border:1px solid var(--line);border-radius:9px;overflow:hidden;background:var(--panel)}
+  .seg button{border:0;background:none;padding:6px 12px;font:inherit;font-size:.85rem;cursor:pointer;color:var(--muted)}
+  .seg button+button{border-left:1px solid var(--line)}
+  .seg button.on{background:var(--accent);color:#fff}
+  .lbl{font-size:.78rem;color:var(--muted);margin-right:6px}
+  .kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(170px,1fr));gap:12px;margin-bottom:14px}
+  .kpi{background:var(--panel);border:1px solid var(--line);border-radius:14px;padding:14px 16px;box-shadow:var(--shadow)}
+  .kpi .v{font-size:1.8rem;font-weight:750;font-variant-numeric:tabular-nums}
+  .kpi .k{color:var(--muted);font-size:.8rem}
+  table{width:100%;border-collapse:collapse;font-size:.88rem;font-variant-numeric:tabular-nums}
+  th,td{text-align:left;padding:7px 6px;border-bottom:1px solid var(--line);white-space:nowrap}
+  th{color:var(--muted);font-weight:600;font-size:.74rem;text-transform:uppercase;letter-spacing:.04em;cursor:pointer;user-select:none}
+  th.num,td.num{text-align:right}
+  tr.row{cursor:pointer}tr.row:hover td{background:#f3f6fa}
+  tr.idle td{color:#9aa3ae}
+  .scroll{overflow-x:auto}
+  .pill{display:inline-block;border-radius:99px;padding:1px 8px;font-size:.75rem;background:var(--chip);color:var(--muted)}
+  .pill.warn{background:#fff4d6;color:var(--warn)}
+  .heat td.c{text-align:center;font-size:.8rem;min-width:62px;border:2px solid var(--panel);border-radius:6px}
+  .heat td.c small{display:block;font-size:.66rem;opacity:.75}
+  .legend{display:flex;gap:6px;align-items:center;font-size:.75rem;color:var(--muted);margin-top:8px;flex-wrap:wrap}
+  .legend i{display:inline-block;width:26px;height:12px;border-radius:3px}
+  .chart{position:relative}
+  .chart svg{display:block;width:100%;height:auto}
+  .tip{position:absolute;pointer-events:none;background:#1c2430;color:#fff;font-size:.78rem;padding:5px 8px;border-radius:6px;white-space:nowrap;transform:translate(-50%,-110%);display:none}
+  .gate{text-align:center;padding:40px 20px}
+  .gate p{color:var(--muted)}
+  .err{color:var(--bad);font-weight:600}
+  .hidden{display:none!important}
+  .modal{position:fixed;inset:0;background:rgba(15,20,30,.45);display:flex;align-items:flex-start;justify-content:center;padding:30px 12px;overflow:auto;z-index:20}
+  .modal .card{max-width:860px;width:100%}
+  .qimg{max-width:100%;border:1px solid var(--line);border-radius:8px;margin-top:8px;background:#fff}
+  .tb{display:grid;grid-template-columns:160px 1fr 70px;gap:6px 10px;align-items:center;font-size:.85rem}
+  .tb .b{height:10px;background:var(--chip);border-radius:5px;overflow:hidden}.tb .b i{display:block;height:100%;background:var(--bar);border-radius:5px}
+  select{font:inherit;font-size:.85rem;padding:4px 6px;border-radius:7px;border:1px solid var(--line)}
+  .two{display:grid;grid-template-columns:1fr 1fr;gap:14px}
+  @media(max-width:820px){.two{grid-template-columns:1fr}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div><h1>Teacher dashboard</h1><p class="sub">DSE Physics Mock MC Practice · <a href="./" target="_blank">open student site</a></p></div>
+    <div style="display:flex;gap:8px;align-items:center;flex-wrap:wrap"><span id="who" class="sub"></span>
+      <button class="btn ghost small hidden" id="reloadBtn" onclick="load()">↻ Refresh data</button>
+      <button class="btn ghost small hidden" id="outBtn" onclick="signOut()">Sign out</button></div>
+  </header>
+
+  <section id="gate" class="card gate">
+    <h2 style="text-transform:none;font-size:1.2rem;color:var(--ink);letter-spacing:0">Teacher sign-in</h2>
+    <p>Sign in with the school account that owns the records sheet.</p>
+    <div id="gsiBtn" style="display:flex;justify-content:center;min-height:44px"></div>
+    <p id="gateMsg" class="err"></p>
+  </section>
+
+  <main id="main" class="hidden">
+    <div class="card filters">
+      <div><span class="lbl">Class</span><span class="seg" id="fClass"></span></div>
+      <div><span class="lbl">Period</span><span class="seg" id="fDays"></span></div>
+      <div><span class="lbl">Part</span><span class="seg" id="fPart"></span></div>
+      <span class="sub" id="asOf"></span>
+    </div>
+
+    <div class="kpis" id="kpis"></div>
+
+    <div class="card">
+      <div style="display:flex;justify-content:space-between;align-items:center;gap:8px;flex-wrap:wrap"><h2 style="margin:0">Students</h2>
+        <button class="btn ghost small" onclick="csv()">⬇ Download CSV</button></div>
+      <p class="sub" style="margin:4px 0 8px">Click a student for details. Grey rows: no practice in this period.</p>
+      <div class="scroll"><table id="stuTbl"></table></div>
+    </div>
+
+    <div class="card">
+      <h2>% correct by topic</h2>
+      <p class="sub" style="margin:-4px 0 8px">Each cell: % correct (questions answered). Blank = not practised in this period.</p>
+      <div class="scroll"><table class="heat" id="heat"></table></div>
+      <div class="legend" id="heatLegend"></div>
+    </div>
+
+    <div class="two">
+      <div class="card">
+        <h2>Sets completed per week</h2>
+        <div class="chart" id="weekly"></div>
+      </div>
+      <div class="card">
+        <h2>Most-missed questions</h2>
+        <p class="sub" style="margin:-4px 0 8px" id="missNote"></p>
+        <div class="scroll"><table id="missTbl"></table></div>
+      </div>
+    </div>
+
+    <div class="card" id="unCard">
+      <h2>Accounts not on the class list</h2>
+      <p class="sub" style="margin:-4px 0 8px">Match each account to a student once; it is saved to the Roster tab.</p>
+      <div class="scroll"><table id="unTbl"></table></div>
+    </div>
+  </main>
+</div>
+
+<div class="modal hidden" id="modal" onclick="if(event.target===this)closeM()"><div class="card" id="mBody"></div></div>
+
+<script>
+const CFG={url:"https://script.google.com/macros/s/AKfycbxbNPfEr-FwRpsbktXoo18WHVFLkm2A7SYiOtHglUHtAvhFUIcpWGhKj0ZICrzgmKt1Sg/exec",file:"mock",
+  qid:q=>q.id,img:q=>`q/${q.id}-E.png`,hasP:false,
+  label:q=>`${q.pub} ${q.s}${q.pub==="OUP"&&q.s===2023?` (Set ${q.st||1})`:q.pub==="Pearson"&&q.st?` (Elective Extra Set ${q.st})`:""} · ${q.p==="1A"?"Paper 1A":"Paper 2"} Q${q.n}`,
+  cid:"91817011001-fj9tks7hkvk934to417krblgg3lv9k2q.apps.googleusercontent.com",dom:"fss.edu.hk",
+  parts:[["all","All"],["core","Core"],["elec","Elective"]],
+  partTopics:p=>p==="core"?["heat","mech","wave","em","nuc"]:p==="elec"?["ast","atom","energy","med"]:TOPICS,
+  partOf(a){const ts=a.topics.split(",").map(x=>NAME2T[x.trim().toLowerCase()]).filter(Boolean);if(!ts.length)return"";const e=ts.map(t=>["ast","atom","energy","med"].includes(t));return e.every(x=>x)?"elec":e.some(x=>x)?"mixed":"core"},
+  topics:[["heat","Heat","Heat"],["mech","Mechanics","Mech"],["wave","Waves","Waves"],["em","Electricity & Magnetism","E&M"],["nuc","Radioactivity & Nuclear Energy","Nuclear"],
+    ["ast","Astronomy & Space Science","Astro"],["atom","Atomic World","Atomic"],["energy","Energy & Use of Energy","Energy"],["med","Medical Physics","Medical"]],};
+const TOPICS=CFG.topics.map(x=>x[0]), TN=Object.fromEntries(CFG.topics.map(x=>[x[0],x[1]])), TS=Object.fromEntries(CFG.topics.map(x=>[x[0],x[2]]));
+const NAME2T=Object.fromEntries(CFG.topics.map(x=>[x[1].toLowerCase(),x[0]]));
+const $=id=>document.getElementById(id);
+const esc=x=>String(x??"").replace(/[&<>"']/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;","'":"&#39;"})[c]);
+const pct=(c,n)=>n?Math.round(100*c/n):null;
+const fmtD=d=>d?`${d.getDate()}/${d.getMonth()+1}`:"—";
+let tok=null,tokExp=0,me=null,Q={},DATA=null,F={cls:"all",days:30,part:"all"},SORT={k:"cls",d:1};
+
+/* ---------- sign-in ---------- */
+function jwt(t){try{const b=t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent([...atob(b)].map(c=>"%"+c.charCodeAt(0).toString(16).padStart(2,"0")).join("")))}catch(e){return{}}}
+function gsiInit(){
+  if(gsiInit.done||!(window.google&&google.accounts&&google.accounts.id))return;gsiInit.done=1;
+  google.accounts.id.initialize({client_id:CFG.cid,callback:onCred,auto_select:true,hd:CFG.dom});
+  google.accounts.id.renderButton($("gsiBtn"),{type:"standard",size:"large",shape:"pill",text:"signin_with"});
+  google.accounts.id.prompt();
+}
+function onCred(r){const p=jwt(r.credential);tok=r.credential;tokExp=(p.exp||0)*1000;me=p.email;$("who").textContent=p.email;load()}
+function signOut(){tok=null;me=null;try{google.accounts.id.disableAutoSelect()}catch(e){}location.reload()}
+async function api(body){const r=await fetch(CFG.url,{method:"POST",body:JSON.stringify({...body,token:tok})});return r.json()}
+
+/* ---------- load ---------- */
+async function load(){
+  if(!tok||Date.now()>tokExp-60000){try{google.accounts.id.prompt()}catch(e){}return}
+  $("gateMsg").textContent="Loading…";
+  try{
+    const [d,qs]=await Promise.all([api({action:"dash"}),Object.keys(Q).length?null:fetch("questions.json").then(r=>r.json())]);
+    if(qs)qs.forEach(q=>Q[CFG.qid(q)]=q);
+    if(!d.ok)throw new Error(d.error||"error");
+    DATA=prep(d);
+    $("gate").classList.add("hidden");$("main").classList.remove("hidden");$("reloadBtn").classList.remove("hidden");$("outBtn").classList.remove("hidden");
+    $("asOf").textContent="Data as of "+new Date().toLocaleString();
+    buildFilters();render();
+  }catch(e){$("gate").classList.remove("hidden");$("gateMsg").textContent="⚠ "+e.message}
+}
+function prep(d){
+  const roster=(d.roster||[]).map(r=>({cls:String(r[0]),no:String(r[1]).padStart(2,"0"),name:String(r[2]),email:String(r[3]||"").trim().toLowerCase()}));
+  const byEmail={};roster.forEach(r=>{if(r.email)byEmail[r.email]=r});
+  const att=(d.attempts||[]).map(a=>({t:new Date(a[0]),email:String(a[1]).toLowerCase(),name:a[2],part:String(a[3]||""),topics:String(a[4]||""),mode:a[5],total:+a[6]||0,correct:+a[7]||0,secs:+a[9]||0,
+    wrong:String(a[10]||"").split(/\s+/).filter(Boolean),qids:a[11]?String(a[11]).split(/\s+/).filter(Boolean):null})).filter(a=>!isNaN(a.t));
+  const lists=k=>Object.fromEntries((d[k]||[]).map(r=>{let v=[];try{v=JSON.parse(r[1]||"[]")}catch(e){}return[String(r[0]).toLowerCase(),v]}));
+  const names={};att.forEach(a=>names[a.email]=a.name);
+  return{roster,byEmail,att,wrongL:lists("wrong"),flagL:lists("flagged"),names};
+}
+
+/* ---------- filters ---------- */
+function seg(id,opts,key){$(id).replaceChildren(...opts.map(([v,l])=>{const b=document.createElement("button");b.textContent=l;b.className=F[key]===v?"on":"";b.onclick=()=>{F[key]=v;buildFilters();render()};return b}))}
+function buildFilters(){
+  const cls=[...new Set(DATA.roster.map(r=>r.cls))].sort();
+  seg("fClass",[["all","All"],...cls.map(c=>[c,c])],"cls");
+  seg("fDays",[[7,"7 days"],[30,"30 days"],[90,"90 days"],[0,"All time"]],"days");
+  seg("fPart",CFG.parts,"part");
+}
+const inPart=a=>F.part==="all"||CFG.partOf(a)===F.part;
+function students(){
+  const list=DATA.roster.filter(r=>F.cls==="all"||r.cls===F.cls).map(r=>({...r,key:r.email||("?"+r.cls+r.no)}));
+  if(F.cls==="all")Object.keys(DATA.names).filter(e=>!DATA.byEmail[e]).forEach(e=>list.push({cls:"",no:"",name:DATA.names[e],email:e,key:e,unmatched:1}));
+  return list;
+}
+function inRange(a){return(!F.days||a.t>=Date.now()-F.days*864e5)&&inPart(a)}
+
+/* ---------- stats ---------- */
+function stats(email){
+  const A=DATA.att.filter(a=>a.email===email&&inRange(a));
+  const s={sets:A.length,q:0,c:0,secs:0,last:null,top:{},A};
+  TOPICS.forEach(k=>s.top[k]={n:0,c:0});
+  A.forEach(a=>{s.q+=a.total;s.c+=a.correct;s.secs+=a.secs;if(!s.last||a.t>s.last)s.last=a.t;
+    if(a.qids){const w=new Set(a.wrong);a.qids.forEach(id=>{const q=Q[id];if(!q||!s.top[q.t])return;s.top[q.t].n++;if(!w.has(id))s.top[q.t].c++})}
+    else{const ts=a.topics.split(",").map(x=>NAME2T[x.trim().toLowerCase()]).filter(Boolean);if(ts.length===1&&s.top[ts[0]]){s.top[ts[0]].n+=a.total;s.top[ts[0]].c+=a.correct}}
+  });
+  let weak=null;TOPICS.forEach(k=>{const t=s.top[k];if(t.n>=5&&(!weak||t.c/t.n<s.top[weak].c/s.top[weak].n))weak=k});s.weak=weak;
+  s.wrongN=(DATA.wrongL[email]||[]).filter(id=>Q[id]).length;s.flagN=(DATA.flagL[email]||[]).filter(id=>Q[id]).length;
+  return s;
+}
+
+/* ---------- render ---------- */
+function render(){
+  const S=students().map(r=>({...r,s:r.email?stats(r.email):stats("")}));
+  const act=S.filter(r=>r.s.sets);
+  const q=S.reduce((x,r)=>x+r.s.q,0),c=S.reduce((x,r)=>x+r.s.c,0),sets=S.reduce((x,r)=>x+r.s.sets,0);
+  const rosterN=S.filter(r=>!r.unmatched).length, actR=S.filter(r=>!r.unmatched&&r.s.sets).length;
+  $("kpis").innerHTML=[[`${actR}<span class="sub"> / ${rosterN}</span>`,"students practised"],[sets,"sets completed"],[q,"questions answered"],[q?pct(c,q)+"%":"—","average correct"]]
+    .map(([v,k])=>`<div class="kpi"><div class="v">${v}</div><div class="k">${k}</div></div>`).join("");
+  renderStudents(S);renderHeat(S);renderWeekly();renderMiss(S);renderUnmatched();
+}
+const COLS=[["cls","Class"],["name","Name"],["sets","Sets",1],["q","Questions",1],["pc","% correct",1],["last","Last practised",1],["weak","Weakest topic"],["wrongN","Wrong list",1],["flagN","Flagged",1]];
+function val(r,k){const s=r.s;return k==="cls"?(r.cls||"~")+r.no:k==="name"?r.name:k==="pc"?(s.q?s.c/s.q:-1):k==="last"?(s.last?+s.last:0):k==="weak"?(s.weak||"~"):s[k]}
+function renderStudents(S){
+  S.sort((a,b)=>{const x=val(a,SORT.k),y=val(b,SORT.k);return(x>y?1:x<y?-1:0)*SORT.d});
+  window._S=S;
+  $("stuTbl").innerHTML=`<tr>${COLS.map(([k,l,n])=>`<th class="${n?"num":""}" onclick="sortBy('${k}')">${l}${SORT.k===k?(SORT.d>0?" ▲":" ▼"):""}</th>`).join("")}</tr>`+
+    S.map((r,i)=>{const s=r.s,pc=pct(s.c,s.q);
+      return `<tr class="row ${s.sets?"":"idle"}" onclick="detail(${i})"><td>${r.unmatched?'<span class="pill warn">not on list</span>':esc(r.cls+r.no)}</td><td>${esc(r.name)}</td>
+      <td class="num">${s.sets||"—"}</td><td class="num">${s.q||"—"}</td><td class="num">${pc==null?"—":pc+"%"}</td><td class="num">${fmtD(s.last)}</td>
+      <td>${s.weak?`${esc(TS[s.weak])} <span class="sub">${pct(s.top[s.weak].c,s.top[s.weak].n)}%</span>`:"—"}</td><td class="num">${s.wrongN||"—"}</td><td class="num">${s.flagN||"—"}</td></tr>`}).join("");
+}
+function sortBy(k){SORT=SORT.k===k?{k,d:-SORT.d}:{k,d:["sets","q","pc","last","wrongN","flagN"].includes(k)?-1:1};render()}
+
+/* heatmap: diverging red–grey–blue around 60 % */
+const RED=["#ec4647","#f3888a","#f8c3c4"],MID="#efefef",BLUE=["#b6d5f8","#6aabf1","#257de0"];
+function heatC(p){if(p==null)return["transparent","inherit"];const s=[[0,RED[0],"#fff"],[40,RED[1],"#1c2430"],[50,RED[2],"#1c2430"],[60,MID,"#1c2430"],[70,BLUE[0],"#1c2430"],[80,BLUE[1],"#1c2430"],[90,BLUE[2],"#fff"]];let o=s[0];s.forEach(x=>{if(p>=x[0])o=x});return[o[1],o[2]]}
+function cell(t){const p=pct(t.c,t.n);if(p==null)return`<td class="c"></td>`;const[bg,fg]=heatC(p);return`<td class="c" style="background:${bg};color:${fg}" title="${t.c} of ${t.n} correct">${p}%<small>(${t.n})</small></td>`}
+function renderHeat(S){
+  const rows=S.filter(r=>r.s.sets).sort((a,b)=>val(a,"cls")>val(b,"cls")?1:-1);
+  const tot={};TOPICS.forEach(k=>tot[k]={n:0,c:0});rows.forEach(r=>TOPICS.forEach(k=>{tot[k].n+=r.s.top[k].n;tot[k].c+=r.s.top[k].c}));
+  const cols=TOPICS.filter(k=>CFG.partTopics(F.part).includes(k));
+  $("heat").innerHTML=`<tr><th>Student</th>${cols.map(k=>`<th style="text-align:center" title="${esc(TN[k])}">${esc(TS[k])}</th>`).join("")}</tr>`+
+    `<tr><td><b>Group average</b></td>${cols.map(k=>cell(tot[k])).join("")}</tr>`+
+    rows.map(r=>`<tr><td>${esc((r.cls?r.cls+r.no+" ":"")+r.name)}</td>${cols.map(k=>cell(r.s.top[k])).join("")}</tr>`).join("");
+  $("heatLegend").innerHTML="% correct:"+[["<40",0],["40–49",40],["50–59",50],["60–69",60],["70–79",70],["80–89",80],["90+",90]].map(([l,p])=>`<i style="background:${heatC(p)[0]}"></i>${l}`).join(" ");
+}
+
+/* weekly bars */
+function renderWeekly(){
+  const em=new Set(students().map(r=>r.email).filter(Boolean));
+  const mon=d=>{const x=new Date(d);x.setHours(0,0,0,0);x.setDate(x.getDate()-((x.getDay()+6)%7));return+x};
+  const now=mon(Date.now()),W=12,wk=[];for(let i=W-1;i>=0;i--)wk.push({t:now-i*7*864e5,n:0,stu:new Set()});
+  DATA.att.filter(a=>em.has(a.email)&&inPart(a)).forEach(a=>{const b=wk.find(w=>w.t===mon(a.t));if(b){b.n++;b.stu.add(a.email)}});
+  const max=Math.max(4,...wk.map(w=>w.n)),w=520,h=220,pl=34,pb=26,bw=(w-pl-8)/W;
+  const step=Math.ceil(max/4),ticks=[0,1,2,3,4].map(i=>i*step).filter(v=>v<=step*4);const top=step*4;
+  const y=v=>h-pb-(h-pb-10)*v/top;
+  let g=ticks.map(v=>`<line x1="${pl}" x2="${w-4}" y1="${y(v)}" y2="${y(v)}" stroke="#e3e7ec"/><text x="${pl-6}" y="${y(v)+4}" text-anchor="end" font-size="11" fill="#5f6b7a">${v}</text>`).join("");
+  g+=wk.map((b,i)=>{const x=pl+i*bw+bw*.18,bh=h-pb-y(b.n),d=new Date(b.t);
+    return `<g class="hb" data-tip="Week of ${fmtD(d)}: ${b.n} set(s), ${b.stu.size} student(s)">${b.n?`<path d="M${x},${h-pb}v${-Math.max(bh-4,0)}a4,4 0 0 1 4,-4h${bw*.64-8}a4,4 0 0 1 4,4v${Math.max(bh-4,0)}z" fill="var(--bar)"/>`:""}
+      <rect x="${pl+i*bw}" y="10" width="${bw}" height="${h-pb-10}" fill="transparent"/>
+      ${i%2===W%2?"":`<text x="${x+bw*.32}" y="${h-8}" text-anchor="middle" font-size="11" fill="#5f6b7a">${fmtD(d)}</text>`}</g>`}).join("");
+  $("weekly").innerHTML=`<svg viewBox="0 0 ${w} ${h}" role="img" aria-label="Sets completed per week">${g}</svg><div class="tip" id="wtip"></div>`;
+  $("weekly").querySelectorAll(".hb").forEach(el=>{el.onmousemove=e=>{const t=$("wtip"),r=$("weekly").getBoundingClientRect();t.textContent=el.dataset.tip;t.style.display="block";t.style.left=(e.clientX-r.left)+"px";t.style.top=(e.clientY-r.top)+"px"};el.onmouseleave=()=>$("wtip").style.display="none"});
+}
+
+/* most missed */
+function renderMiss(S){
+  const em=new Set(S.map(r=>r.email).filter(Boolean)),st={};let anyQ=false;
+  DATA.att.filter(a=>em.has(a.email)&&inRange(a)).forEach(a=>{
+    if(a.qids){anyQ=true;a.qids.forEach(id=>{(st[id]=st[id]||{n:0,w:0,who:new Set()}).n++})}
+    a.wrong.forEach(id=>{const x=(st[id]=st[id]||{n:0,w:0,who:new Set()});x.w++;x.who.add(a.email)})});
+  const rows=Object.entries(st).filter(([id,x])=>Q[id]&&x.w).map(([id,x])=>({id,...x,r:x.n?x.w/x.n:null}))
+    .sort((a,b)=>(b.r!=null&&a.r!=null&&a.n>=3&&b.n>=3?b.r-a.r:0)||b.who.size-a.who.size||b.w-a.w).slice(0,15);
+  $("missNote").textContent=anyQ?"Questions answered wrongly most often in this period (rate shown when asked ≥ 3 times).":"Questions answered wrongly most often in this period.";
+  $("missTbl").innerHTML=rows.length?`<tr><th>Question</th><th>Topic</th><th class="num">Students wrong</th><th class="num">Wrong / asked</th>${CFG.hasP?'<th class="num">DSE % correct</th>':""}<th></th></tr>`+
+    rows.map(r=>{const q=Q[r.id];return `<tr><td>${esc(CFG.label(q))}</td><td>${esc(TS[q.t])}</td><td class="num">${r.who.size}</td><td class="num">${r.w}${r.n?` / ${r.n}`:""}</td>${CFG.hasP?`<td class="num">${q.p!=null?q.p+"%":"—"}</td>`:""}<td><button class="btn ghost small" onclick="showQ('${r.id}')">View</button></td></tr>`}).join(""):`<tr><td class="sub">No wrong answers recorded in this period.</td></tr>`;
+}
+function showQ(id){const q=Q[id];$("mBody").innerHTML=`<div style="display:flex;justify-content:space-between"><b>${esc(CFG.label(q))} · ${esc(TN[q.t])} · Answer ${esc(q.a)}</b><button class="btn ghost small" onclick="closeM()">✕</button></div><img class="qimg" src="${CFG.img(q)}" alt="">`;$("modal").classList.remove("hidden")}
+function closeM(){$("modal").classList.add("hidden")}
+
+/* student detail */
+function detail(i){
+  const r=window._S[i],s=r.s;
+  const bars=TOPICS.filter(k=>s.top[k].n).map(k=>{const p=pct(s.top[k].c,s.top[k].n);return`<div>${esc(TN[k])}</div><div class="b"><i style="width:${p}%"></i></div><div class="num">${p}% <span class="sub">(${s.top[k].n})</span></div>`}).join("");
+  const wl=(DATA.wrongL[r.email]||[]).filter(id=>Q[id]),fl=(DATA.flagL[r.email]||[]).filter(id=>Q[id]);
+  const byT=l=>TOPICS.map(k=>[k,l.filter(id=>Q[id].t===k).length]).filter(x=>x[1]).map(([k,n])=>`${esc(TS[k])} ${n}`).join(" · ")||"—";
+  const recent=[...s.A].sort((a,b)=>b.t-a.t).slice(0,20);
+  $("mBody").innerHTML=`<div style="display:flex;justify-content:space-between;gap:8px"><div><b style="font-size:1.1rem">${esc((r.cls?r.cls+r.no+" ":"")+r.name)}</b><div class="sub">${esc(r.email||"no account linked")}</div></div><button class="btn ghost small" onclick="closeM()">✕</button></div>
+    <p class="sub">${s.sets} set(s), ${s.q} questions, ${s.q?pct(s.c,s.q)+"% correct":"—"}, time practising ${Math.round(s.secs/60)} min in this period.</p>
+    <h2>By topic</h2>${bars?`<div class="tb">${bars}</div>`:'<p class="sub">No topic data in this period.</p>'}
+    <h2 style="margin-top:14px">Current lists</h2><p style="font-size:.88rem;margin:0">Wrong-question list: <b>${wl.length}</b> — ${byT(wl)}<br>Flagged: <b>${fl.length}</b> — ${byT(fl)}</p>
+    ${fl.length?`<p style="font-size:.85rem">${fl.map(id=>`<button class="btn ghost small" style="margin:2px" onclick="showQ('${id}')">⚑ ${esc(CFG.label(Q[id]))}</button>`).join("")}</p>`:""}
+    <h2 style="margin-top:14px">Recent sets</h2>${recent.length?`<div class="scroll"><table><tr><th>Date</th><th>Set</th><th>Mode</th><th class="num">Score</th><th class="num">Time</th></tr>${recent.map(a=>`<tr><td>${a.t.toLocaleDateString()} ${a.t.toLocaleTimeString([], {hour:"2-digit",minute:"2-digit"})}</td><td>${esc(a.part)}<div class="sub" style="white-space:normal">${esc(a.topics)}</div></td><td>${esc(a.mode)}</td><td class="num">${a.correct}/${a.total}</td><td class="num">${Math.round(a.secs/60)} min</td></tr>`).join("")}</table></div>`:'<p class="sub">No sets in this period.</p>'}`;
+  $("modal").classList.remove("hidden");
+}
+
+/* unmatched accounts */
+function renderUnmatched(){
+  const un=Object.keys(DATA.names).filter(e=>!DATA.byEmail[e]);
+  $("unCard").classList.toggle("hidden",!un.length);if(!un.length)return;
+  const free=DATA.roster.filter(r=>!r.email);
+  $("unTbl").innerHTML=`<tr><th>Account</th><th>Name on account</th><th class="num">Sets</th><th>Match to</th></tr>`+un.map(e=>`<tr><td>${esc(e)}</td><td>${esc(DATA.names[e])}</td><td class="num">${DATA.att.filter(a=>a.email===e).length}</td>
+    <td><select data-e="${esc(e)}"><option value="">— choose student —</option>${free.map(r=>`<option value="${esc(r.cls+"|"+r.no)}">${esc(r.cls+r.no+" "+r.name)}</option>`).join("")}</select> <button class="btn small" onclick="link(this)">Save</button></td></tr>`).join("");
+}
+async function link(b){
+  const s=b.previousElementSibling,v=s.value;if(!v)return;const [cls,no]=v.split("|");b.disabled=true;b.textContent="Saving…";
+  try{const d=await api({action:"link",cls,no,email:s.dataset.e});if(!d.ok)throw new Error(d.error);await load()}catch(e){alert(e.message);b.disabled=false;b.textContent="Save"}
+}
+
+/* csv */
+function csv(){
+  const rows=[["Class","No","Name","Email","Sets","Questions","Correct","% correct","Last practised",...TOPICS.map(k=>TN[k]+" %"),"Wrong list","Flagged"]];
+  window._S.forEach(r=>{const s=r.s;rows.push([r.cls,r.no,r.name,r.email,s.sets,s.q,s.c,s.q?pct(s.c,s.q):"",s.last?s.last.toLocaleDateString():"",...TOPICS.map(k=>s.top[k].n?pct(s.top[k].c,s.top[k].n):""),s.wrongN,s.flagN])});
+  const blob=new Blob(["﻿"+rows.map(r=>r.map(x=>`"${String(x??"").replace(/"/g,'""')}"`).join(",")).join("\r\n")],{type:"text/csv"});
+  const a=document.createElement("a");a.href=URL.createObjectURL(blob);a.download=`${CFG.file}-progress-${new Date().toISOString().slice(0,10)}.csv`;a.click();
+}
+document.addEventListener("keydown",e=>{if(e.key==="Escape")closeM()});
+</script>
+<script src="https://accounts.google.com/gsi/client" async defer onload="gsiInit()"></script>
+</body>
+</html>
