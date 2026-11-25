@@ -59,6 +59,7 @@
   .dot{width:30px;height:30px;border-radius:8px;border:1px solid var(--line);background:var(--panel);font-size:.78rem;cursor:pointer;color:var(--muted)}
   .dot.ans{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
   .dot.cur{outline:2px solid var(--accent);outline-offset:1px}
+  #flagBtn.on{border-color:var(--warn);color:var(--warn);font-weight:700}
   .dot.flag{border-color:var(--warn);border-width:2px}
   /* results */
   .big{font-size:2.6rem;font-weight:800;margin:0}
@@ -157,6 +158,14 @@
       <button class="btn ghost small" id="wrongBtn" onclick="startWrong()"></button>
       <button class="btn ghost small" onclick="clearWrong()" data-t="clear"></button>
     </div>
+    <div class="card" id="flagCard">
+      <h2 data-t="myFlag"></h2>
+      <p id="flagInfo" style="margin:0 0 10px"></p>
+      <button class="btn ghost small" id="flagStartBtn" onclick="startFlag()"></button>
+      <button class="btn ghost small" id="flagListBtn" onclick="showFlagList()"></button>
+      <button class="btn ghost small" onclick="clearFlag()" data-t="clear"></button>
+      <div id="flagList" class="hidden" style="margin-top:12px"></div>
+    </div>
   </section>
 
   <!-- QUIZ -->
@@ -223,7 +232,7 @@ const T = {
      practice:"Practice",exam:"Exam",practiceHint:"See the answer straight after each question.",examHint:"Timed (1.8 min per question, like the real exam). Answers shown at the end.",
      start:"Start",pool:n=>`${n} question(s) match your choices`,myWrong:"My wrong questions",
      wrongPick:"Choose the topics to practise:",wrongInfo:n=>n?`You have ${n} question(s) you answered wrongly before (saved to your school account).`:"No wrong questions saved yet.",
-     redoSaved:"Practise these",clear:"Clear",prev:"← Prev",next:"Next →",finish:"Finish",flag:"⚑ Flag",unflag:"⚑ Unflag",quit:"Quit",
+     redoSaved:"Practise these",clear:"Clear",prev:"← Prev",next:"Next →",finish:"Finish",flag:"⚐ Flag",unflag:"⚑ Flagged",myFlag:"⚑ My flagged questions",flagInfo:n=>n?`You have flagged ${n} question(s) to review later (saved to your account).`:"No flagged questions yet. Press “⚐ Flag” while doing a question to save it here.",flagStart:"Practise these",flagList:"Show list",flagHide:"Hide list",unflagQ:"Remove",clearFlagQ:"Remove all flagged questions?",quit:"Quit",
      q:(i,n)=>`Question ${i} of ${n}`,correctFb:"✓ Correct!",wrongFb:k=>`✗ The answer is ${k}.`,pct:p=>` (${p}% of DSE candidates got this right)`,
      confirmFinish:n=>`${n} question(s) not answered. Finish anyway?`,confirmQuit:"Quit this set? Your answers will be lost.",
      result:"Result",scoreSub:(c,n,t)=>`${c} out of ${n} correct${t?` · time used ${t}`:""}`,topic:"Topic",correct:"Correct",
@@ -237,7 +246,7 @@ const T = {
      practice:"練習",exam:"考試",practiceHint:"每題作答後即時顯示答案。",examHint:"計時（每題 1.8 分鐘，與正式考試相同），完成後才顯示答案。",
      start:"開始",pool:n=>`共有 ${n} 題符合你的選擇`,myWrong:"我的錯題",
      wrongPick:"選擇要重做的課題：",wrongInfo:n=>n?`你之前答錯了 ${n} 題（儲存於你的學校帳戶）。`:"暫時未有錯題紀錄。",
-     redoSaved:"練習錯題",clear:"清除",prev:"← 上一題",next:"下一題 →",finish:"完成",flag:"⚑ 標記",unflag:"⚑ 取消標記",quit:"離開",
+     redoSaved:"練習錯題",clear:"清除",prev:"← 上一題",next:"下一題 →",finish:"完成",flag:"⚐ 標記",unflag:"⚑ 已標記",myFlag:"⚑ 我的標記題目",flagInfo:n=>n?`你已標記 ${n} 題，留待稍後溫習（已儲存在你的帳戶）。`:"暫時未有標記題目。做題時按「⚐ 標記」即可把題目儲存到這裏。",flagStart:"練習這些題目",flagList:"顯示題目",flagHide:"隱藏題目",unflagQ:"移除",clearFlagQ:"確定清除所有標記題目？",quit:"離開",
      q:(i,n)=>`第 ${i} 題（共 ${n} 題）`,correctFb:"✓ 答對了！",wrongFb:k=>`✗ 答案是 ${k}。`,pct:p=>`（${p}% 考生答對）`,
      confirmFinish:n=>`尚有 ${n} 題未作答，確定完成？`,confirmQuit:"確定離開？你的答案將不會保留。",
      result:"成績",scoreSub:(c,n,t)=>`${n} 題中答對 ${c} 題${t?` · 用時 ${t}`:""}`,topic:"課題",correct:"答對",
@@ -280,6 +289,7 @@ const ACC={url:"https://script.google.com/macros/s/AKfycbxbNPfEr-FwRpsbktXoo18WH
 let user=null,tok=null,tokExp=0,accSt="",accMsg="";
 const WK=()=>user?"dsemock2_wrong_"+user.email:"dsemock2_wrong";
 const PK=()=>"dsemock2_pending_"+(user?user.email:"");
+const FK=()=>"dsemock2_flag_"+(user?user.email:"");
 async function api(body){const r=await fetch(ACC.url,{method:"POST",body:JSON.stringify(body)});return r.json()}
 function jwt(t){try{const b=t.split(".")[1].replace(/-/g,"+").replace(/_/g,"/");return JSON.parse(decodeURIComponent([...atob(b)].map(c=>"%"+c.charCodeAt(0).toString(16).padStart(2,"0")).join("")))}catch(e){return{}}}
 const esc=x=>String(x).replace(/[&<>"]/g,c=>({"&":"&amp;","<":"&lt;",">":"&gt;",'"':"&quot;"})[c]);
@@ -300,7 +310,7 @@ function pend(){return store.get(PK(),{a:[],w:false})}
 async function flush(){
   const p=pend();if(!p.a.length&&!p.w)return true;
   if(!tok||Date.now()>tokExp-60000)return false;
-  do{const d=await api({action:"save",token:tok,attempt:p.a[0]||null,wrong:store.get(WK(),[])});if(!d.ok)throw new Error(d.error||"error");
+  do{const d=await api({action:"save",token:tok,attempt:p.a[0]||null,wrong:store.get(WK(),[]),flagged:store.get(FK(),[])});if(!d.ok)throw new Error(d.error||"error");
     p.a.shift();p.w=false;store.set(PK(),p)}while(p.a.length);
   return true;
 }
@@ -315,7 +325,7 @@ async function onCred(r){
   tok=r.credential;tokExp=(p.exp||0)*1000;user={email:String(p.email).toLowerCase(),name:p.name||p.email};store.set("dsemock2_acct",1);
   $("gate").classList.add("hidden");if(first)showSetup();setAcc("sync");
   try{await flush();const d=await api({action:"load",token:tok});if(!d.ok)throw new Error(d.error||"error");
-    if(Array.isArray(d.wrong))store.set(WK(),d.wrong);
+    if(Array.isArray(d.wrong))store.set(WK(),d.wrong);if(Array.isArray(d.flagged))store.set(FK(),d.flagged);
     const guest=store.get("dsemock2_wrong",[]);
     if(d.wrong===null&&guest.length){store.set(WK(),guest);store.set("dsemock2_wrong",[]);await sync(null)}else setAcc("ok")}catch(e){setAcc("err",e.message)}
   if(!$("setup").classList.contains("hidden"))refresh();
@@ -344,24 +354,25 @@ function refresh(){
   $("wrongTopics").classList.toggle("hidden",!wt.length);
   $("wrongChips").replaceChildren(...wt.map(k=>{const b=chip(`${t.topicsN[k]} (${wq.filter(q=>q.t===k).length})`,k,!wrongOff.has(k));b.onclick=()=>{wrongOff.has(k)?wrongOff.delete(k):wrongOff.add(k);refresh()};return b}));
   const wn=wrongSel().length; $("wrongBtn").disabled=!wn; $("wrongBtn").textContent=t.redoSaved+(wq.length?` (${wn})`:"");
+  const f=flagQs(); $("flagInfo").textContent=t.flagInfo(f.length); $("flagStartBtn").disabled=$("flagListBtn").disabled=!f.length; if(!f.length)$("flagList").classList.add("hidden"); $("flagListBtn").textContent=$("flagList").classList.contains("hidden")?t.flagList:t.flagHide; if(!$("flagList").classList.contains("hidden"))renderFlagList();
 }
 function applyLang(){
   const t=T[lang]; document.documentElement.lang=lang==="C"?"zh-Hant":"en";
   document.querySelectorAll("[data-t]").forEach(e=>e.textContent=t[e.dataset.t]);
   $("lgE").className=lang==="E"?"on":""; $("lgC").className=lang==="C"?"on":"";
-  $("extChip").textContent=t.extOn; $("startBtn").textContent=t.start; $("wrongBtn").textContent=t.redoSaved;
+  $("extChip").textContent=t.extOn; $("startBtn").textContent=t.start; $("wrongBtn").textContent=t.redoSaved; $("flagStartBtn").textContent=t.flagStart;
   $("prevBtn").textContent=t.prev; $("homeBtn").textContent=t.home; $("onlyWrongChip").textContent=t.onlyWrong;
 }
 function setLang(l){lang=l;store.set("dsemock2_lang",l);applyLang();setAcc(accSt);buildSetup();if(S){if(!$("quiz").classList.contains("hidden"))renderQ();if(!$("results").classList.contains("hidden"))renderResults()}}
 
 function shuffle(a){for(let i=a.length-1;i>0;i--){const j=Math.floor(Math.random()*(i+1));[a[i],a[j]]=[a[j],a[i]]}return a}
-function start(list){
+function start(list,src){
   let qs=list||pool();
   const order=list?"random":on("orderChips")[0], num=list?"all":on("numChips")[0];
   if(order==="random")shuffle(qs=[...qs]); else qs=[...qs].sort((a,b)=>(a.pub>b.pub)-(a.pub<b.pub)||a.s-b.s||(a.st||1)-(b.st||1)||(a.p>b.p)-(a.p<b.p)||parseFloat(a.n)-parseFloat(b.n));
   if(num!=="all")qs=qs.slice(0,+num);
   const mode=list?"practice":on("modeChips")[0];
-  S={qs,src:list?"redo":"setup",part,ans:Array(qs.length).fill(null),flag:Array(qs.length).fill(false),i:0,mode,t0:Date.now(),limit:mode==="exam"?Math.round(qs.length*1.8*60):0};
+  S={qs,src:src||(list?"redo":"setup"),part,ans:Array(qs.length).fill(null),flag:qs.map(q=>flagSet().has(qid(q))),i:0,mode,t0:Date.now(),limit:mode==="exam"?Math.round(qs.length*1.8*60):0};
   $("setup").classList.add("hidden");$("results").classList.add("hidden");$("quiz").classList.remove("hidden");syncHome();
   clearInterval(timerId);
   if(S.limit){$("timerBox").classList.remove("hidden");tick();timerId=setInterval(tick,1000)}else $("timerBox").classList.add("hidden");
@@ -370,6 +381,14 @@ function start(list){
 function wrongQs(){const w=new Set(store.get(WK(),[]));return Q.filter(q=>w.has(qid(q)))}
 function wrongSel(){return wrongQs().filter(q=>!wrongOff.has(q.t))}
 function startWrong(){start(wrongSel())}
+function flagSet(){return new Set(store.get(FK(),[]))}
+function flagQs(){const f=flagSet();return Q.filter(q=>f.has(qid(q)))}
+function setFlag(id,on){const f=flagSet();on?f.add(id):f.delete(id);store.set(FK(),[...f]);sync(null)}
+function startFlag(){start(flagQs(),"flag")}
+async function clearFlag(){if(!flagSet().size||!(await ask(T[lang].clearFlagQ)))return;store.set(FK(),[]);sync(null);refresh()}
+function showFlagList(){$("flagList").classList.toggle("hidden");refresh()}
+function renderFlagList(){const t=T[lang];
+  $("flagList").innerHTML=flagQs().sort((a,b)=>TOPICS.indexOf(a.t)-TOPICS.indexOf(b.t)||b.s-a.s||(a.pub>b.pub)-(a.pub<b.pub)||(a.p>b.p)-(a.p<b.p)||parseFloat(a.n)-parseFloat(b.n)).map(q=>`<div class="rev"><div><span class="tag">${t.topicsN[q.t]}</span>${q.x?'<span class="tag ext">*</span>':""}<b>${t.paperQ(q)}</b> <button class="btn ghost small" style="float:right" onclick="setFlag('${qid(q)}',false);refresh()">${t.unflagQ}</button></div><img class="qimg" src="${img(q)}" alt="" loading="lazy"></div>`).join("")}
 function clearWrong(){store.set(WK(),[]);sync(null);refresh()}
 const fmt=s=>`${Math.floor(s/60)}:${String(s%60).padStart(2,"0")}`;
 function tick(){const left=S.limit-Math.floor((Date.now()-S.t0)/1000);$("timer").textContent=fmt(Math.max(0,left));$("timer").classList.toggle("low",left<120);if(left<=0){clearInterval(timerId);finish(true);ask(T[lang].timeUp,true)}}
@@ -388,14 +407,15 @@ function renderQ(){
   $("solBox").innerHTML=reveal?solHTML(q):"";
   $("prevBtn").disabled=S.i===0;
   $("nextBtn").textContent=S.i===n-1?t.finish:t.next;
-  $("flagBtn").textContent=S.flag[S.i]?t.unflag:t.flag;
+  $("flagBtn").textContent=S.flag[S.i]?t.unflag:t.flag;$("flagBtn").classList.toggle("on",!!S.flag[S.i]);
   $("dots").replaceChildren(...S.qs.map((_,k)=>{const d=document.createElement("button");d.className="dot";d.textContent=k+1;
     if(S.ans[k])d.classList.add("ans");if(k===S.i)d.classList.add("cur");if(S.flag[k])d.classList.add("flag");
     if(S.mode==="practice"&&S.ans[k]){d.style.background=S.ans[k]===ak(S.qs[k])?"var(--good-soft)":"var(--bad-soft)";d.style.borderColor=S.ans[k]===ak(S.qs[k])?"var(--good)":"var(--bad)";d.style.color=d.style.borderColor}
     d.onclick=()=>{S.i=k;renderQ()};return d}));
 }
 function choose(L){if(S.mode==="practice"&&S.ans[S.i])return;S.ans[S.i]=L;renderQ()}
-function flag(){S.flag[S.i]=!S.flag[S.i];renderQ()}
+function flag(){S.flag[S.i]=!S.flag[S.i];setFlag(qid(S.qs[S.i]),S.flag[S.i]);renderQ()}
+function flagRev(k){S.flag[k]=!S.flag[k];setFlag(qid(S.qs[k]),S.flag[k]);renderReview()}
 async function go(d){if(S.i+d>=S.qs.length){const left=S.ans.filter(x=>!x).length;if(left&&!(await ask(T[lang].confirmFinish(left))))return;finish();return}S.i=Math.max(0,S.i+d);renderQ();scrollTo(0,0)}
 async function quit(){if(await ask(T[lang].confirmQuit)){clearInterval(timerId);S=null;showSetup()}}
 function finish(){
@@ -404,7 +424,7 @@ function finish(){
   S.qs.forEach((q,k)=>{if(S.ans[k]===ak(q))w.delete(qid(q));else w.add(qid(q))});
   store.set(WK(),[...w]);
   const cor=S.qs.filter((q,k)=>S.ans[k]===ak(q)).length;
-  sync({part:S.src==="redo"?"Wrong-question redo":S.part==="elec"?"Elective":"Core",topics:TOPICS.filter(k=>S.qs.some(q=>q.t===k)).map(k=>T.E.topicsN[k]),
+  sync({part:S.src==="redo"?"Wrong-question redo":S.src==="flag"?"Flagged review":S.part==="elec"?"Elective":"Core",topics:TOPICS.filter(k=>S.qs.some(q=>q.t===k)).map(k=>T.E.topicsN[k]),
     mode:S.mode,total:S.qs.length,correct:cor,seconds:S.used,wrongIds:S.qs.filter((q,k)=>S.ans[k]!==ak(q)).map(qid)});
   $("quiz").classList.add("hidden");$("results").classList.remove("hidden");renderResults();scrollTo(0,0);
 }
@@ -422,7 +442,7 @@ function renderResults(){
 function renderReview(){
   const t=T[lang], only=$("onlyWrongChip").getAttribute("aria-pressed")==="true";
   $("reviewList").innerHTML=S.qs.map((q,k)=>{const a=S.ans[k],ok=a===ak(q);if(only&&ok)return"";
-    return `<div class="rev"><div><span class="tag">${t.topicsN[q.t]}</span>${q.x?'<span class="tag ext">*</span>':""}<b>${t.paperQ(q)}</b></div>
+    return `<div class="rev"><div><span class="tag">${t.topicsN[q.t]}</span>${q.x?'<span class="tag ext">*</span>':""}<b>${t.paperQ(q)}</b> <button class="btn ghost small" style="float:right" onclick="flagRev(${k})">${S.flag[k]?t.unflag:t.flag}</button></div>
       <img class="qimg" src="${img(q)}" alt="" loading="lazy">
       <div>${t.yours}: <span class="${ok?"ok":"no"}">${a||t.none}</span> &nbsp; ${t.key}: <span class="ok">${ak(q)}</span></div><details class="solbox"${S.mode==="practice"?"":""}><summary>${t.showSol}</summary>${solHTML(q)}</details></div>`}).join("");
 }
